@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>合金材料查询系统</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .search-box {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .search-item {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="number"]:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            margin-top: 25px;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        .results {
+            margin-top: 20px;
+        }
+        
+        .result-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #3498db;
+            transition: transform 0.2s;
+        }
+        
+        .result-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .recommended {
+            border-left-color: #e74c3c;
+            background-color: #fff5f5;
+        }
+        
+        .recommended-tag {
+            display: inline-block;
+            background-color: #e74c3c;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        
+        .department {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .grade {
+            color: #555;
+        }
+        
+        .properties {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #777;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 30px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        
+        .info {
+            background-color: #e8f4fc;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+        
+        @media (max-width: 768px) {
+            .search-box {
+                flex-direction: column;
+            }
+            
+            .search-item {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>合金材料查询系统</h1>
+        
+        <div class="info">
+            <p>本系统支持按照产品强度和产品硬度查询合金材料牌号。如果没有精确匹配的牌号，系统会显示最接近的牌号并标注"推荐"。</p>
+        </div>
+        
+        <div class="search-box">
+            <div class="search-item">
+                <label for="strength">产品强度</label>
+                <input type="number" id="strength" placeholder="输入产品强度值，例如：2200">
+            </div>
+            
+            <div class="search-item">
+                <label for="hardness">产品硬度</label>
+                <input type="number" id="hardness" step="0.1" placeholder="输入产品硬度值，例如：91.6">
+            </div>
+            
+            <button id="search-btn">搜索</button>
+        </div>
+        
+        <div class="results" id="results">
+            <!-- 搜索结果将在这里显示 -->
+        </div>
+    </div>
+
+    <script>
+        // 合金材料数据
+        const alloyData = [
+            { department: "耐磨合金事业部", grade: "YG6A", hardness: 92.6, strength: 2000, productHardness: null, productStrength: null },
+            { department: "耐磨合金事业部", grade: "YG6X", hardness: 91.9, strength: 2200, productHardness: 91.7, productStrength: 2200 },
+            { department: "耐磨合金事业部", grade: "YG8K", hardness: 89, strength: 2500, productHardness: 88.5, productStrength: 2500 },
+            { department: "耐磨合金事业部", grade: "YG8KX", hardness: 89.8, strength: 2500, productHardness: 89.8, productStrength: 2500 },
+            { department: "耐磨合金事业部", grade: "YG9C", hardness: 87.4, strength: 2500, productHardness: null, productStrength: null },
+            { department: "耐磨合金事业部", grade: "YG11C", hardness: 86.4, strength: 2300, productHardness: 86.2, productStrength: 2300 },
+            { department: "耐磨合金事业部", grade: "YG15", hardness: 86.8, strength: 2400, productHardness: 87, productStrength: 2400 },
+            { department: "耐磨合金事业部", grade: "YG18A", hardness: 87.1, strength: 2950, productHardness: 86.9, productStrength: 2950 },
+            { department: "耐磨合金事业部", grade: "ZB40C", hardness: 85.5, strength: 2500, productHardness: 85.5, productStrength: 2500 },
+            { department: "耐磨合金事业部", grade: "ZB45", hardness: 84.4, strength: 2500, productHardness: 84.4, productStrength: 2500 },
+            { department: "耐磨合金事业部", grade: "ZB45A", hardness: 84.4, strength: 2500, productHardness: 84.4, productStrength: 2500 },
+            { department: "耐磨合金事业部", grade: "ZB45B", hardness: 84.4, strength: 2500, productHardness: 84.4, productStrength: 2500 },
+            { department: "耐磨合金事业部", grade: "ZB45C", hardness: 83.1, strength: 2500, productHardness: 83.2, productStrength: 2500 },
+            { department: "耐磨合金事业部", grade: "ZB50C", hardness: 82.4, strength: 2300, productHardness: 82.1, productStrength: 2300 },
+            { department: "耐磨合金事业部", grade: "ZB55C", hardness: 81.4, strength: 2300, productHardness: 81.4, productStrength: 2300 },
+            { department: "耐磨合金事业部", grade: "ZB60N", hardness: 82, strength: 2000, productHardness: 82.7, productStrength: 2400 },
+            { department: "耐磨合金事业部", grade: "ZB65", hardness: 83.2, strength: 2400, productHardness: 83.2, productStrength: 2400 },
+            { department: "耐磨合金事业部", grade: "ZB75A", hardness: 81.5, strength: 2400, productHardness: 81.5, productStrength: 2400 },
+            { department: "耐磨合金事业部", grade: "ZD30", hardness: 87.3, strength: 2350, productHardness: null, productStrength: null },
+            { department: "耐磨合金事业部", grade: "ZE05", hardness: 90.8, strength: 2400, productHardness: 90.8, productStrength: 2400 },
+            { department: "耐磨合金事业部", grade: "ZE10", hardness: 90, strength: 2400, productHardness: 89.7, productStrength: 2400 },
+            { department: "耐磨合金事业部", grade: "ZE20", hardness: 90, strength: 2400, productHardness: 89.5, productStrength: 2400 },
+            { department: "耐磨合金事业部", grade: "ZE25", hardness: 88.3, strength: 2300, productHardness: 88.5, productStrength: 2400 },
+            { department: "耐磨合金事业部", grade: "ZK10UF", hardness: 92.6, strength: 2000, productHardness: 92.6, productStrength: 2000 },
+            { department: "耐磨合金事业部", grade: "ZK10UF-1", hardness: 91.6, strength: 2100, productHardness: null, productStrength: null },
+            { department: "耐磨合金事业部", grade: "ZK20", hardness: 90.6, strength: 2300, productHardness: 90.5, productStrength: 2300 },
+            { department: "耐磨合金事业部", grade: "ZK30", hardness: 89.7, strength: 2300, productHardness: 89.5, productStrength: 2300 },
+            { department: "耐磨合金事业部", grade: "ZK30UF", hardness: 91.4, strength: 2400, productHardness: 91.2, productStrength: 2500 },
+            { department: "耐磨合金事业部", grade: "ZL20", hardness: 89.2, strength: 2300, productHardness: 89.2, productStrength: 2300 },
+            { department: "耐磨合金事业部", grade: "ZL35", hardness: 88.5, strength: 2400, productHardness: 88.5, productStrength: 2400 },
+            { department: "耐磨合金事业部", grade: "ZL35.1", hardness: 86, strength: 1400, productHardness: 86, productStrength: 2400 },
+            { department: "耐磨合金事业部", grade: "ZL50A", hardness: 87.6, strength: 3200, productHardness: 87.4, productStrength: 3200 },
+            { department: "耐磨合金事业部", grade: "ZR20", hardness: 88.9, strength: 2850, productHardness: 88.9, productStrength: 2850 },
+            { department: "耐磨合金事业部", grade: "ZR30", hardness: 90, strength: 3000, productHardness: 89.9, productStrength: 3000 },
+            { department: "耐磨合金事业部", grade: "ZR50", hardness: 87.7, strength: 3200, productHardness: 87.7, productStrength: 3200 },
+            { department: "耐磨合金事业部", grade: "ZS30", hardness: 90.6, strength: 2300, productHardness: 90.5, productStrength: 2300 },
+            { department: "耐磨合金事业部", grade: "YG6Z", hardness: 90.2, strength: 2000, productHardness: 90, productStrength: 2000 },
+            { department: "耐磨合金事业部", grade: "YG8Z", hardness: 88.5, strength: 2450, productHardness: 88.5, productStrength: 2450 },
+            { department: "耐磨合金事业部", grade: "YG10CB", hardness: 86.5, strength: 2450, productHardness: 86.5, productStrength: 2300 },
+            { department: "耐磨合金事业部", grade: "ZB19C", hardness: 79, strength: null, productHardness: 79, productStrength: null },
+            { department: "耐磨合金事业部", grade: "ZB20C", hardness: 82, strength: 2000, productHardness: 82, productStrength: 2000 },
+            { department: "耐磨合金事业部", grade: "ZB22C", hardness: 81.5, strength: 2100, productHardness: 81.8, productStrength: 2000 },
+            { department: "耐磨合金事业部", grade: "ZL10A", hardness: 91.3, strength: 2200, productHardness: 91.3, productStrength: 2200 },
+            { department: "耐磨合金事业部", grade: "ZL10B", hardness: 91.7, strength: 2300, productHardness: 91.7, productStrength: 2300 },
+            { department: "耐磨合金事业部", grade: "ZL10.3B", hardness: 91.7, strength: 2300, productHardness: 91.7, productStrength: 2300 },
+            { department: "耐磨合金事业部", grade: "YG6Q", hardness: null, strength: null, productHardness: null, productStrength: null },
+            { department: "耐磨合金事业部", grade: "YG12Q", hardness: 83, strength: null, productHardness: null, productStrength: null },
+            { department: "精密零件事业部", grade: "YG9CA", hardness: 0, strength: 2300, productHardness: 6, productStrength: 2300 },
+            { department: "精密零件事业部", grade: "YG11M", hardness: 89.2, strength: 2413, productHardness: 10.5, productStrength: 2413 },
+            { department: "精密零件事业部", grade: "ZK10UF", hardness: 93, strength: 2000, productHardness: null, productStrength: null },
+            { department: "精密零件事业部", grade: "ZK10UF-1", hardness: 91.6, strength: 2100, productHardness: 15.5, productStrength: 2100 },
+            { department: "精密零件事业部", grade: "ZK10UF-H", hardness: 92.6, strength: 2400, productHardness: 24, productStrength: 2400 },
+            { department: "精密零件事业部", grade: "ZK20", hardness: 90.7, strength: 2150, productHardness: 12.5, productStrength: 2150 },
+            { department: "精密零件事业部", grade: "ZK30", hardness: 89.9, strength: 2300, productHardness: 10, productStrength: 2300 },
+            { department: "精密零件事业部", grade: "ZK30UF", hardness: 91.4, strength: 2500, productHardness: 18, productStrength: 2500 },
+            { department: "精密零件事业部", grade: "ZK35.5", hardness: 86.6, strength: 2700, productHardness: null, productStrength: null },
+            { department: "精密零件事业部", grade: "ZN106G", hardness: 90.5, strength: 2100, productHardness: null, productStrength: 2100 },
+            { department: "精密零件事业部", grade: "ZN106G-1", hardness: 92.9, strength: 2150, productHardness: null, productStrength: 2150 },
+            { department: "精密零件事业部", grade: "ZN109G", hardness: 89.5, strength: 2400, productHardness: null, productStrength: 2400 },
+            { department: "精密零件事业部", grade: "ZN211G", hardness: 87.5, strength: 2760, productHardness: 8, productStrength: 2760 },
+            { department: "精密零件事业部", grade: "ZN209G", hardness: 86.8, strength: 2400, productHardness: null, productStrength: 2400 },
+            { department: "精密零件事业部", grade: "ZL13Q", hardness: 88, strength: 2900, productHardness: 8.5, productStrength: 2900 },
+            { department: "精密零件事业部", grade: "ZLT10", hardness: 89, strength: 1400, productHardness: null, productStrength: 1400 },
+            { department: "精密零件事业部", grade: "YG8E", hardness: 89, strength: 1900, productHardness: 9, productStrength: 1900 },
+            { department: "精密零件事业部", grade: "ZN210G", hardness: 89.5, strength: 2200, productHardness: 10, productStrength: 2200 },
+            { department: "采掘合金事业部", grade: "YG8C", hardness: 87.9, strength: 2400, productHardness: 6.3, productStrength: 2400 },
+            { department: "采掘合金事业部", grade: "YG8K", hardness: 88.9, strength: 2400, productHardness: 8.6, productStrength: 2400 },
+            { department: "采掘合金事业部", grade: "YG9C", hardness: 87.4, strength: 2500, productHardness: 6, productStrength: 2500 },
+            { department: "采掘合金事业部", grade: "YG11C", hardness: 86.4, strength: 2400, productHardness: 5.6, productStrength: 2400 },
+            { department: "采掘合金事业部", grade: "YG15C", hardness: 85, strength: 2350, productHardness: 4.5, productStrength: 2350 },
+            { department: "采掘合金事业部", grade: "YG15", hardness: 87, strength: 2800, productHardness: 7, productStrength: 2800 },
+            { department: "采掘合金事业部", grade: "YG18", hardness: 86.6, strength: 3000, productHardness: 6.8, productStrength: 3000 },
+            { department: "采掘合金事业部", grade: "YG20", hardness: 86.2, strength: 3000, productHardness: 8.6, productStrength: 3000 },
+            { department: "采掘合金事业部", grade: "ZD10", hardness: 89.7, strength: 2600, productHardness: 9.8, productStrength: 2600 },
+            { department: "采掘合金事业部", grade: "ZD10T", hardness: 86.8, strength: 2000, productHardness: 4.8, productStrength: 2000 },
+            { department: "采掘合金事业部", grade: "ZD15", hardness: 89, strength: 2300, productHardness: 8, productStrength: 2300 },
+            { department: "采掘合金事业部", grade: "ZD30", hardness: 87.3, strength: 2500, productHardness: 5.8, productStrength: 2500 },
+            { department: "采掘合金事业部", grade: "ZD30A", hardness: 88, strength: 2850, productHardness: 6.8, productStrength: 2850 },
+            { department: "采掘合金事业部", grade: "ZD30T", hardness: 85.2, strength: 2200, productHardness: 3, productStrength: 2200 },
+            { department: "采掘合金事业部", grade: "ZD35A", hardness: 87, strength: 2900, productHardness: 6, productStrength: 2900 },
+            { department: "采掘合金事业部", grade: "ZD40", hardness: 86.7, strength: 2900, productHardness: 5.2, productStrength: 2900 },
+            { department: "采掘合金事业部", grade: "ZD40T", hardness: 84, strength: 2000, productHardness: 2.5, productStrength: 2000 },
+            { department: "采掘合金事业部", grade: "ZD45", hardness: 86.2, strength: 2950, productHardness: 5.4, productStrength: 2950 },
+            { department: "采掘合金事业部", grade: "ZD45.1", hardness: 87.8, strength: 2950, productHardness: 8, productStrength: 2950 },
+            { department: "采掘合金事业部", grade: "ZD45.3", hardness: 85.7, strength: 2900, productHardness: 5, productStrength: 2900 },
+            { department: "采掘合金事业部", grade: "YG6KA", hardness: 89, strength: 2400, productHardness: 8.5, productStrength: 2200 },
+            { department: "采掘合金事业部", grade: "YG8Z", hardness: 88.7, strength: 2450, productHardness: 7, productStrength: 2450 },
+            { department: "采掘合金事业部", grade: "ZD35K", hardness: 86, strength: 2500, productHardness: 5, productStrength: 2300 },
+            { department: "采掘合金事业部", grade: "ZG30C", hardness: 85.5, strength: 2000, productHardness: 4.5, productStrength: 2000 },
+            { department: "大制品事业部", grade: "ZY27", hardness: 76.2, strength: 2000, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY28", hardness: 78.5, strength: 2200, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY29", hardness: 80, strength: 2350, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY30", hardness: 81, strength: 2350, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY31", hardness: 82, strength: 2350, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY32", hardness: 83, strength: 2300, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY33", hardness: 83.5, strength: 2300, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY34", hardness: 84.5, strength: 2300, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY35", hardness: 86, strength: 2300, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY36", hardness: 87, strength: 2300, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY37", hardness: 87, strength: 2000, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY27A", hardness: 78.5, strength: 2000, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY28A", hardness: 81, strength: 2400, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY29A", hardness: 82, strength: 2350, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY30A", hardness: 83, strength: 2400, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY31A", hardness: 83, strength: 2400, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY32A", hardness: 84.2, strength: 2400, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY33A", hardness: 84.5, strength: 2400, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY34A", hardness: 85, strength: 2400, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY35A", hardness: 86, strength: 2400, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY36A", hardness: 87, strength: 2000, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY37A", hardness: 88, strength: 2000, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZYB23HB", hardness: 78, strength: 2000, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZYB27HA", hardness: 76, strength: 2200, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZYB27HB", hardness: 78, strength: 2200, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZYB28HB", hardness: 80, strength: 2200, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZYB29HB", hardness: 81.5, strength: 2350, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZYB30HB", hardness: 82.5, strength: 2350, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZYB31HB", hardness: 83, strength: 2350, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZYB32HB", hardness: 83.5, strength: 2350, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZYB33HB", hardness: 84.5, strength: 2300, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZYB37HB", hardness: 89, strength: 2000, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZY36N", hardness: 88.5, strength: 2000, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZN120", hardness: 81.5, strength: 2400, productHardness: null, productStrength: null },
+            { department: "大制品事业部", grade: "ZLT30", hardness: 83, strength: 1500, productHardness: 92.5, productStrength: 1500 },
+            { department: "大制品事业部", grade: "ZYT40", hardness: 92.5, strength: 1500, productHardness: 83, productStrength: 1500 },
+            { department: "型材事业部", grade: "YG6X", hardness: 91.7, strength: 2300, productHardness: null, productStrength: null },
+            { department: "型材事业部", grade: "YG6-1", hardness: 87, strength: null, productHardness: null, productStrength: null },
+            { department: "型材事业部", grade: "YG15", hardness: 87.5, strength: 2300, productHardness: null, productStrength: null },
+            { department: "型材事业部", grade: "YG18", hardness: 86, strength: 2300, productHardness: null, productStrength: null },
+            { department: "型材事业部", grade: "ZK20(YG6)", hardness: 90.5, strength: 1720, productHardness: null, productStrength: null },
+            { department: "型材事业部", grade: "ZK30(YG8)", hardness: 89.6, strength: 1800, productHardness: null, productStrength: null },
+            { department: "型材事业部", grade: "ZK11UF", hardness: 92.6, strength: 2300, productHardness: null, productStrength: null },
+            { department: "型材事业部", grade: "ZK10UF-1", hardness: 91.4, strength: 2000, productHardness: null, productStrength: null },
+            { department: "型材事业部", grade: "ZK20UF", hardness: 92, strength: 2200, productHardness: null, productStrength: null },
+            { department: "型材事业部", grade: "ZK31UF（ZK30UF)", hardness: 91.2, strength: 3300, productHardness: null, productStrength: null },
+            { department: "型材事业部", grade: "EK30U", hardness: 91.4, strength: 3000, productHardness: null, productStrength: null },
+            { department: "型材事业部", grade: "ZK10SF", hardness: 93.5, strength: 2000, productHardness: null, productStrength: null },
+            { department: "型材事业部", grade: "ZK20SF", hardness: 93, strength: 3000, productHardness: null, productStrength: null },
+            { department: "型材事业部", grade: "ZK30SF", hardness: 92, strength: 3000, productHardness: null, productStrength: null },
+            { department: "型材事业部", grade: "ZK40SF", hardness: 91.8, strength: 3400, productHardness: null, productStrength: null },
+            { department: "型材事业部", grade: "EK40S", hardness: 91.5, strength: 3200, productHardness: null, productStrength: null },
+            { department: "型材事业部", grade: "ZK45SF", hardness: 91.8, strength: 3000, productHardness: null, productStrength: null },
+            { department: "型材事业部", grade: "AS30", hardness: 88.7, strength: 2300, productHardness: null, productStrength: null }
+        ];
+
+        // 搜索功能
+        document.getElementById('search-btn').addEventListener('click', function() {
+            const strengthInput = document.getElementById('strength').value;
+            const hardnessInput = document.getElementById('hardness').value;
+            
+            let results = [];
+            
+            // 如果两个输入框都有值，先按强度筛选再按硬度筛选
+            if (strengthInput && hardnessInput) {
+                const strength = parseFloat(strengthInput);
+                const hardness = parseFloat(hardnessInput);
+                
+                // 先筛选出强度匹配的数据
+                let strengthMatches = [];
+                
+                // 精确匹配强度
+                strengthMatches = alloyData.filter(item => 
+                    item.productStrength === strength
+                );
+                
+                // 如果没有精确匹配，找到最接近的强度
+                if (strengthMatches.length === 0) {
+                    let closestStrength = null;
+                    let minStrengthDiff = Infinity;
+                    
+                    alloyData.forEach(item => {
+                        if (item.productStrength !== null) {
+                            const diff = Math.abs(item.productStrength - strength);
+                            if (diff < minStrengthDiff) {
+                                minStrengthDiff = diff;
+                                closestStrength = item.productStrength;
+                            }
+                        }
+                    });
+                    
+                    // 筛选出最接近强度的数据
+                    strengthMatches = alloyData.filter(item => 
+                        item.productStrength === closestStrength
+                    );
+                }
+                
+                // 在强度匹配的数据中筛选硬度匹配的数据
+                let hardnessMatches = [];
+                
+                // 精确匹配硬度
+                hardnessMatches = strengthMatches.filter(item => 
+                    item.productHardness === hardness
+                );
+                
+                // 如果没有精确匹配，找到最接近的硬度
+                if (hardnessMatches.length === 0) {
+                    let closestHardness = null;
+                    let minHardnessDiff = Infinity;
+                    
+                    strengthMatches.forEach(item => {
+                        if (item.productHardness !== null) {
+                            const diff = Math.abs(item.productHardness - hardness);
+                            if (diff < minHardnessDiff) {
+                                minHardnessDiff = diff;
+                                closestHardness = item.productHardness;
+                            }
+                        }
+                    });
+                    
+                    // 筛选出最接近硬度的数据
+                    hardnessMatches = strengthMatches.filter(item => 
+                        item.productHardness === closestHardness
+                    );
+                }
+                
+                results = hardnessMatches;
+            } 
+            // 如果只有强度输入
+            else if (strengthInput) {
+                const strength = parseFloat(strengthInput);
+                
+                // 精确匹配强度
+                results = alloyData.filter(item => 
+                    item.productStrength === strength
+                );
+                
+                // 如果没有精确匹配，找到最接近的强度
+                if (results.length === 0) {
+                    let closestStrength = null;
+                    let minStrengthDiff = Infinity;
+                    
+                    alloyData.forEach(item => {
+                        if (item.productStrength !== null) {
+                            const diff = Math.abs(item.productStrength - strength);
+                            if (diff < minStrengthDiff) {
+                                minStrengthDiff = diff;
+                                closestStrength = item.productStrength;
+                            }
+                        }
+                    });
+                    
+                    // 筛选出最接近强度的数据
+                    results = alloyData.filter(item => 
+                        item.productStrength === closestStrength
+                    );
+                }
+            } 
+            // 如果只有硬度输入
+            else if (hardnessInput) {
+                const hardness = parseFloat(hardnessInput);
+                
+                // 精确匹配硬度
+                results = alloyData.filter(item => 
+                    item.productHardness === hardness
+                );
+                
+                // 如果没有精确匹配，找到最接近的硬度
+                if (results.length === 0) {
+                    let closestHardness = null;
+                    let minHardnessDiff = Infinity;
+                    
+                    alloyData.forEach(item => {
+                        if (item.productHardness !== null) {
+                            const diff = Math.abs(item.productHardness - hardness);
+                            if (diff < minHardnessDiff) {
+                                minHardnessDiff = diff;
+                                closestHardness = item.productHardness;
+                            }
+                        }
+                    });
+                    
+                    // 筛选出最接近硬度的数据
+                    results = alloyData.filter(item => 
+                        item.productHardness === closestHardness
+                    );
+                }
+            }
+            
+            displayResults(results, strengthInput, hardnessInput);
+        });
+
+        // 显示搜索结果
+        function displayResults(results, strengthInput, hardnessInput) {
+            const resultsContainer = document.getElementById('results');
+            resultsContainer.innerHTML = '';
+            
+            if (results.length === 0) {
+                resultsContainer.innerHTML = '<div class="no-results">没有找到匹配的牌号</div>';
+                return;
+            }
+            
+            // 检查是否是精确匹配
+            const isExactStrengthMatch = strengthInput && results.every(item => 
+                item.productStrength === parseFloat(strengthInput)
+            );
+            
+            const isExactHardnessMatch = hardnessInput && results.every(item => 
+                item.productHardness === parseFloat(hardnessInput)
+            );
+            
+            const isRecommended = !isExactStrengthMatch || !isExactHardnessMatch;
+            
+            results.forEach(item => {
+                const resultElement = document.createElement('div');
+                resultElement.className = 'result-item';
+                
+                if (isRecommended) {
+                    resultElement.classList.add('recommended');
+                }
+                
+                let html = `
+                    <div class="department">${item.department}</div>
+                    <div class="grade">牌号：${item.grade}</div>
+                    <div class="properties">
+                        产品硬度：${item.productHardness !== null ? item.productHardness : '-'} | 
+                        产品强度：${item.productStrength !== null ? item.productStrength : '-'}
+                `;
+                
+                if (isRecommended) {
+                    html += `<span class="recommended-tag">推荐</span>`;
+                }
+                
+                html += `</div>`;
+                
+                resultElement.innerHTML = html;
+                resultsContainer.appendChild(resultElement);
+            });
+        }
+    </script>
+</body>
+</html>
